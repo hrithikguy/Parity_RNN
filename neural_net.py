@@ -1,37 +1,69 @@
 
-# Import MNIST data
 import tensorflow as tf
 import numpy as np
-
+import matplotlib.pyplot as plt
 
 from numpy import binary_repr
 
 
-sample_lengths = 30
+sample_lengths = 15
 
 
 
-def make_samples(n):
-    x = []
-    for i in range(n):
-        #x.append(np.random.randint(2, size = sample_lengths))
-        x.append(map(int, list(binary_repr(np.random.randint(pow(2, sample_lengths), size = 1)[0], sample_lengths))))
-    y = []
-    for i in x:
-        if (sum(i) % 2) == 0:
-            y.append([1, 0])
-        else:
-            y.append([0, 1])
+numbers = list(np.array(np.random.choice(range(pow(2, sample_lengths)), min(10000, pow(2, sample_lengths)), replace=False)))
+# print numbers
 
-    # print x
-    # print y
-    return x,y
 
+
+train_numbers = []
+test_numbers = []
+
+for i,j in enumerate(numbers):
+    split_index = int(0.8 * len(numbers))
+    if i < split_index:
+        train_numbers.append(j)
+    else:
+        test_numbers.append(j)
+
+# print train_numbers
+# print len(train_numbers)
+# print test_numbers
+# print len(test_numbers)
+
+
+
+train_x = []
+train_y = []
+test_x = []
+test_y = []
+
+for i in train_numbers:
+    train_x.append(map(int, list(binary_repr(i, sample_lengths))))
+
+for i in train_x:
+    if (sum(i) % 2) == 0:
+        train_y.append([1, 0])
+    else:
+        train_y.append([0, 1])    
+
+
+for i in test_numbers:
+    test_x.append(map(int, list(binary_repr(i, sample_lengths))))
+
+for i in test_x:
+    if (sum(i) % 2) == 0:
+        test_y.append([1, 0])
+    else:
+        test_y.append([0, 1])    
+
+
+# for i,j in enumerate(train_x):
+#     print j, train_y[i]
 
 
 # Parameters
 learning_rate = 0.001
-training_epochs = 25
+training_epochs = 500
 batch_size = 5
 display_step = 1
 
@@ -80,7 +112,12 @@ optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
 # Initializing the variables
 init = tf.initialize_all_variables()
 
-test_x, test_y = make_samples(10000)
+
+train_accuracies = []
+train_losses = []
+
+test_accuracies = []
+test_losses = []
 
 # Launch the graph
 with tf.Session() as sess:
@@ -88,11 +125,19 @@ with tf.Session() as sess:
 
     # Training cycle
     for epoch in range(training_epochs):
+        print epoch
         avg_cost = 0.
-        total_batch = 10
+        total_batch = int(len(train_x)/100)
         # Loop over all batches
-        for i in range(10):
-            batch_x, batch_y = make_samples(batch_size)
+        for i in range(total_batch):
+            
+            batch_indices = np.random.choice(len(train_x), 100)
+            batch_x = []
+            batch_y = []
+            for i in batch_indices:
+                batch_x.append(train_x[i])
+                batch_y.append(train_y[i])
+
             # print batch_x
             # print batch_y
             # Run optimization op (backprop) and cost op (to get loss value)
@@ -101,15 +146,56 @@ with tf.Session() as sess:
             # Compute average loss
             avg_cost += c / total_batch
         # Display logs per epoch step
-        if epoch % display_step == 0:
-            print("Epoch:", '%04d' % (epoch+1), "cost=", \
-                "{:.9f}".format(avg_cost))
-            correct_prediction = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
-            # Calculate accuracy
-            accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
-            print("Accuracy:", accuracy.eval({x: test_x, y: test_y}))
-    print("Optimization Finished!")
+        #train_losses.append(cost.eval({x: train_x, y: train_y}))
+        #print("Epoch:", '%04d' % (epoch+1), "cost=", \
+        #    "{:.9f}".format(avg_cost))
+        correct_prediction = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
+        # Calculate accuracy
+        accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
+        #print("Accuracy:", accuracy.eval({x: test_x, y: test_y}))
+        #test_accuracies.append(accuracy.eval({x: test_x, y: test_y}))
+
+        #print("Train Accuracy")
+        #correct_prediction = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
+        # Calculate accuracy
+        #accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
+        #print("Accuracy:", accuracy.eval({x: train_x, y: train_y}))
+        train_accuracies.append(accuracy.eval({x: train_x, y: train_y}))
+        test_losses.append(cost.eval({x: test_x, y: test_y}))
+        test_accuracies.append(accuracy.eval({x: test_x, y: test_y}))
+        train_losses.append(cost.eval({x: train_x, y: train_y}))
 
 
+    print("Final Train Accuracy")
+    correct_prediction = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
+    # Calculate accuracy
+    accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
+    print("Accuracy:", accuracy.eval({x: train_x, y: train_y}))
 
 
+    print("Final Test Accuracy")
+    correct_prediction = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
+    # Calculate accuracy
+    accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
+    print("Accuracy:", accuracy.eval({x: test_x, y: test_y}))
+
+
+print train_accuracies
+print test_accuracies
+print train_losses
+print test_losses
+
+
+x_axis = np.arange(0, len(train_accuracies))
+
+plt.figure(1)
+plt.plot(x_axis, train_accuracies, 'r')
+plt.plot(x_axis, test_accuracies, 'g')
+
+plt.show()
+
+plt.figure(1)
+plt.plot(x_axis, train_losses, 'r')
+plt.plot(x_axis, test_losses, 'g')
+
+plt.show()
