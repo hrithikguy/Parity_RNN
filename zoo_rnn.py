@@ -8,9 +8,13 @@ import cPickle as pickle
 from datetime import datetime
 
 from numpy import binary_repr
+import sys
 
-
-sample_lengths = 15
+if len(sys.argv) > 1:
+    sample_lengths = int(sys.argv[1])
+    print sample_lengths
+else:
+    sample_lengths = 15
 
 numbers = list(np.array(np.random.choice(range(pow(2, sample_lengths)), min(10000, pow(2, sample_lengths)), replace=False)))
 # print numbers
@@ -100,8 +104,6 @@ restore_path = "" # load model from restore_path
 # tf Graph input
 x = tf.placeholder("float", [None, n_steps, n_input])
 y = tf.placeholder("float", [None, n_classes])
-
-print datetime.now()-epoch_start_time
 
 # Create model
 # def rnn(x):
@@ -277,7 +279,7 @@ with tf.Session() as sess:
     # Save the variables to disk.
     # model_checkpoint_name based on final test accuracy
     # can improve to include file with all hyperparam info in same dir
-    model_checkpoint_name = "/tmp/model"+str(accuracy)+".ckpt"
+    model_checkpoint_name = "/tmp"+str(sample_lengths)+"/model"+str(accuracy)+".ckpt"
     save_path = saver.save(sess, model_checkpoint_name)
     print "Model saved in file: %s" % save_path
 
