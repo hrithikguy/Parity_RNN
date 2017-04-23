@@ -293,7 +293,7 @@ print test_accuracies
 print train_losses
 print test_losses
 
-dir_name = str(datetime.datetime.now().isoformat())
+dir_name = str(datetime.now().isoformat())
 os.makedirs(dir_name)
 
 pickle.dump(weight_matrix, open(dir_name + "/weights", "wb"))
