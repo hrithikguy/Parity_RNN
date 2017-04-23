@@ -5,6 +5,7 @@ import datetime
 import matplotlib.pyplot as plt
 import os
 import cPickle as pickle
+from datetime import datetime
 
 from numpy import binary_repr
 
@@ -174,12 +175,15 @@ with tf.Session() as sess:
     sess.run(init)
 
     if restore_path != "":
-	    # Restore variables from disk.
-		saver.restore(sess, restore_path)
-		print("Model restored.")
+        # Restore variables from disk.
+        saver.restore(sess, restore_path)
+        print("Model restored.")
 
     # Training cycle
     for epoch in range(training_epochs):
+
+        # time that current epoch started
+        epoch_start_time = datetime.now()
 
         print epoch
         if perfect_accuracy_count > 5:
@@ -198,10 +202,6 @@ with tf.Session() as sess:
 
             # batch_x = tf.convert_to_tensor(batch_x)
             # batch_y = tf.convert_to_tensor(batch_y)
-
-
-
-
             # print batch_x
             # print batch_y
             # Run optimization op (backprop) and cost op (to get loss value)
@@ -209,6 +209,12 @@ with tf.Session() as sess:
                                                           y: batch_y})
             # Compute average loss
             avg_cost += c / total_batch
+
+        # time that current epoch finished
+        epoch_finish_time = datetime.now()
+        # print duration of epoch
+        print("epoch="+str(epoch)+" took time = "+str(epoch_time))
+
         # Display logs per epoch step
         #train_losses.append(cost.eval({x: train_x, y: train_y}))
         #print("Epoch:", '%04d' % (epoch+1), "cost=", \
@@ -264,12 +270,12 @@ with tf.Session() as sess:
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
     print("Accuracy:", accuracy.eval({x: test_x, y: test_y}))
 
-	# Save the variables to disk.
-	# model_checkpoint_name based on final test accuracy
-	# can improve to include file with all hyperparam info in same dir
-	model_checkpoint_name = "/tmp/model"+str(accuracy)+".ckpt"
-	save_path = saver.save(sess, model_checkpoint_name)
-	print "Model saved in file: %s" % save_path
+    # Save the variables to disk.
+    # model_checkpoint_name based on final test accuracy
+    # can improve to include file with all hyperparam info in same dir
+    model_checkpoint_name = "/tmp/model"+str(accuracy)+".ckpt"
+    save_path = saver.save(sess, model_checkpoint_name)
+    print "Model saved in file: %s" % save_path
 
 
 print train_accuracies

@@ -1,16 +1,16 @@
+
 import tensorflow as tf
 import numpy as np
 import datetime
 import matplotlib.pyplot as plt
 import os
 import cPickle as pickle
+from datetime import datetime
 
 from numpy import binary_repr
 
 
 sample_lengths = 15
-
-
 
 numbers = list(np.array(np.random.choice(range(pow(2, sample_lengths)), min(10000, pow(2, sample_lengths)), replace=False)))
 # print numbers
@@ -66,7 +66,7 @@ for i in train_x:
 
 
 
-for i in test_x:
+for i in test_x:    
     cur = []
     for j in i:
         cur.append([j])
@@ -75,13 +75,15 @@ for i in test_x:
 train_x = train_x_final
 test_x = test_x_final
 
+print train_x
+print test_x
 
 # for i,j in enumerate(train_x):
 #     print j, train_y[i]
 
 
 # Parameters
-learning_rate = 0.001
+learning_rate = 0.01
 training_epochs = 1000
 batch_size = 10
 display_step = 1
@@ -93,11 +95,13 @@ n_neurons = 200 # 1st layer number of features
 n_layers = 2 # 2nd layer number of features
 # n_input = sample_lengths # MNIST data input (img shape: 28*28)
 n_classes = 2 # MNIST total classes (0-9 digits)
+restore_path = "" # load model from restore_path
 
 # tf Graph input
 x = tf.placeholder("float", [None, n_steps, n_input])
 y = tf.placeholder("float", [None, n_classes])
 
+print datetime.now()-epoch_start_time
 
 # Create model
 # def rnn(x):
@@ -135,6 +139,8 @@ x_unstacked = tf.unstack(x, n_steps, 1)
 cell = tf.nn.rnn_cell.MultiRNNCell([tf.nn.rnn_cell.BasicLSTMCell(n_neurons),  tf.nn.rnn_cell.BasicLSTMCell(n_neurons)])
 
 
+
+#outputs,states = tf.contrib.rnn.static_rnn(cell, x_unstacked, dtype=tf.float32)
 outputs,states = tf.nn.rnn(cell, x_unstacked, dtype=tf.float32)
 
 pred = tf.matmul(outputs[-1], weights['out']) + biases['out']
@@ -164,12 +170,23 @@ hidden_matrix = []
 
 perfect_accuracy_count = 0
 
+# Add ops to save and restore all the variables.
+saver = tf.train.Saver()
+
 # Launch the graph
 with tf.Session() as sess:
     sess.run(init)
 
+    if restore_path != "":
+        # Restore variables from disk.
+        saver.restore(sess, restore_path)
+        print("Model restored.")
+
     # Training cycle
     for epoch in range(training_epochs):
+
+        # time that current epoch started
+        epoch_start_time = datetime.now()
 
         print epoch
         if perfect_accuracy_count > 5:
@@ -188,10 +205,6 @@ with tf.Session() as sess:
 
             # batch_x = tf.convert_to_tensor(batch_x)
             # batch_y = tf.convert_to_tensor(batch_y)
-
-
-
-
             # print batch_x
             # print batch_y
             # Run optimization op (backprop) and cost op (to get loss value)
@@ -199,6 +212,13 @@ with tf.Session() as sess:
                                                           y: batch_y})
             # Compute average loss
             avg_cost += c / total_batch
+
+        # time that current epoch finished
+        epoch_finish_time = datetime.now()
+        # print duration of epoch
+        epoch_time = epoch_finish_time-epoch_start_time
+        print("epoch="+str(epoch)+" took time = "+str(epoch_time))
+
         # Display logs per epoch step
         #train_losses.append(cost.eval({x: train_x, y: train_y}))
         #print("Epoch:", '%04d' % (epoch+1), "cost=", \
@@ -253,6 +273,13 @@ with tf.Session() as sess:
     # Calculate accuracy
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
     print("Accuracy:", accuracy.eval({x: test_x, y: test_y}))
+
+    # Save the variables to disk.
+    # model_checkpoint_name based on final test accuracy
+    # can improve to include file with all hyperparam info in same dir
+    model_checkpoint_name = "/tmp/model"+str(accuracy)+".ckpt"
+    save_path = saver.save(sess, model_checkpoint_name)
+    print "Model saved in file: %s" % save_path
 
 
 print train_accuracies
