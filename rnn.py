@@ -94,6 +94,7 @@ n_neurons = 200 # 1st layer number of features
 n_layers = 2 # 2nd layer number of features
 # n_input = sample_lengths # MNIST data input (img shape: 28*28)
 n_classes = 2 # MNIST total classes (0-9 digits)
+restore_path = "" # load model from restore_path
 
 # tf Graph input
 x = tf.placeholder("float", [None, n_steps, n_input])
@@ -171,6 +172,11 @@ saver = tf.train.Saver()
 # Launch the graph
 with tf.Session() as sess:
     sess.run(init)
+
+    if restore_path != "":
+	    # Restore variables from disk.
+		saver.restore(sess, restore_path)
+		print("Model restored.")
 
     # Training cycle
     for epoch in range(training_epochs):
