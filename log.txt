@@ -1,0 +1,5 @@
+4/22
+Added model saving and loading, time stamps between epochs
+Conducting tests on variable length inputs
+Models trained on sequences of length 10,15,20,25 currently running on zoo
+Will test trained models on different sequence lengths than they were trained on next
