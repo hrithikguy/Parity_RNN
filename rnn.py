@@ -11,8 +11,6 @@ from numpy import binary_repr
 
 sample_lengths = 15
 
-
-
 numbers = list(np.array(np.random.choice(range(pow(2, sample_lengths)), min(10000, pow(2, sample_lengths)), replace=False)))
 # print numbers
 
@@ -167,6 +165,9 @@ hidden_matrix = []
 
 perfect_accuracy_count = 0
 
+# Add ops to save and restore all the variables.
+saver = tf.train.Saver()
+
 # Launch the graph
 with tf.Session() as sess:
     sess.run(init)
@@ -256,6 +257,13 @@ with tf.Session() as sess:
     # Calculate accuracy
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
     print("Accuracy:", accuracy.eval({x: test_x, y: test_y}))
+
+	# Save the variables to disk.
+	# model_checkpoint_name based on final test accuracy
+	# can improve to include file with all hyperparam info in same dir
+	model_checkpoint_name = "/tmp/model"+str(accuracy)+".ckpt"
+	save_path = saver.save(sess, model_checkpoint_name)
+	print "Model saved in file: %s" % save_path
 
 
 print train_accuracies
