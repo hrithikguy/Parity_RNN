@@ -171,21 +171,21 @@ with tf.Session() as sess:
             break
         avg_cost = 0.
         total_batch = int(len(train_x)/batch_size)
-        # Loop over all batches
-        for i in range(total_batch):
+        # # Loop over all batches
+        # for i in range(total_batch):
             
-            batch_indices = np.random.choice(len(train_x), batch_size)
-            batch_x = []
-            batch_y = []
-            for i in batch_indices:
-                batch_x.append(train_x[i])
-                batch_y.append(train_y[i])
+        #     batch_indices = np.random.choice(len(train_x), batch_size)
+        #     batch_x = []
+        #     batch_y = []
+        #     for i in batch_indices:
+        #         batch_x.append(train_x[i])
+        #         batch_y.append(train_y[i])
 
-            # Run optimization op (backprop) and cost op (to get loss value)
-            _, c, cur_epoch_states = sess.run([optimizer, cost, states], feed_dict={x: batch_x,
-                                                          y: batch_y})
-            # Compute average loss
-            avg_cost += c / total_batch
+        #     # Run optimization op (backprop) and cost op (to get loss value)
+        #     _, c, cur_epoch_states = sess.run([optimizer, cost, states], feed_dict={x: batch_x,
+        #                                                   y: batch_y})
+        #     # Compute average loss
+        #     avg_cost += c / total_batch
 
         # time that current epoch finished
         epoch_finish_time = datetime.now()
@@ -208,35 +208,34 @@ with tf.Session() as sess:
         # Calculate accuracy
         #accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
         #print("Accuracy:", accuracy.eval({x: train_x, y: train_y}))
-        train_accuracies.append(accuracy.eval({x: train_x, y: train_y}))
+        #train_accuracies.append(accuracy.eval({x: train_x, y: train_y}))
         test_losses.append(cost.eval({x: test_x, y: test_y}))
         test_accuracies.append(accuracy.eval({x: test_x, y: test_y}))
-        train_losses.append(cost.eval({x: train_x, y: train_y}))
+        #train_losses.append(cost.eval({x: train_x, y: train_y}))
 
-        print("Final Train Accuracy")
-        # Calculate accuracy
-        print("Accuracy:", train_accuracies[-1])
+        # print("Final Train Accuracy")
+        # # Calculate accuracy
+        # print("Accuracy:", train_accuracies[-1])
 
-        if train_accuracies[-1] >= 0.999 or test_accuracies[-1] >= 0.999:
-            perfect_accuracy_count += 1
+        # if train_accuracies[-1] >= 0.999 or test_accuracies[-1] >= 0.999:
+        #     perfect_accuracy_count += 1
 
 
         print("Final Test Accuracy")
         # Calculate accuracy
         print("Accuracy:", test_accuracies[-1])
 
-        weight_matrix.append(weights['out'].eval())
-        bias_matrix.append(biases['out'].eval())
+        # weight_matrix.append(weights['out'].eval())
+        # bias_matrix.append(biases['out'].eval())
 
-        for i in cur_epoch_states:
-            cell_matrix.append(i[0])
-            hidden_matrix.append(i[1])
-
+        # for i in cur_epoch_states:
+        #     cell_matrix.append(i[0])
+        #     hidden_matrix.append(i[1])
 
         # np.savez("weights3_" + str(epoch), states = states[-1])
 
-    print("Final Train Accuracy")
-    correct_prediction = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
+    #print("Final Train Accuracy")
+    #correct_prediction = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
     # Calculate accuracy
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
     print("Accuracy:", accuracy.eval({x: train_x, y: train_y}))
@@ -248,34 +247,34 @@ with tf.Session() as sess:
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
     print("Accuracy:", accuracy.eval({x: test_x, y: test_y}))
 
-    # Save the variables to disk.
-    # model_checkpoint_name based on final test accuracy
-    # can improve to include file with all hyperparam info in same dir
-    directory = "tmp"+str(sample_lengths)+"/"
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-    filename = "model"+str(accuracy)+".ckpt"
-    model_checkpoint_name = directory+filename
-    save_path = saver.save(sess, model_checkpoint_name)
-    print "Model saved in file: %s" % save_path
+    # # Save the variables to disk.
+    # # model_checkpoint_name based on final test accuracy
+    # # can improve to include file with all hyperparam info in same dir
+    # directory = "tmp"+str(sample_lengths)+"/"
+    # if not os.path.exists(directory):
+    #     os.makedirs(directory)
+    # filename = "model"+str(accuracy)+".ckpt"
+    # model_checkpoint_name = directory+filename
+    # save_path = saver.save(sess, model_checkpoint_name)
+    # print "Model saved in file: %s" % save_path
 
 
-print train_accuracies
+#print train_accuracies
 print test_accuracies
-print train_losses
+#print train_losses
 print test_losses
 
-dir_name = str(datetime.now().isoformat())
-os.makedirs(dir_name)
+# dir_name = str(datetime.now().isoformat())
+# os.makedirs(dir_name)
 
-pickle.dump(weight_matrix, open(dir_name + "/weights", "wb"))
-pickle.dump(bias_matrix, open(dir_name + "/biases", "wb"))
-pickle.dump(cell_matrix, open(dir_name + "/cells", "wb"))
-pickle.dump(hidden_matrix, open(dir_name + "/hiddens", "wb"))
-pickle.dump(train_accuracies, open(dir_name + "/train_acc", "wb"))
-pickle.dump(test_accuracies, open(dir_name + "/test_acc", "wb"))
-pickle.dump(train_losses, open(dir_name + "/train_loss", "wb"))
-pickle.dump(test_losses, open(dir_name + "/test_loss", "wb"))
+# pickle.dump(weight_matrix, open(dir_name + "/weights", "wb"))
+# pickle.dump(bias_matrix, open(dir_name + "/biases", "wb"))
+# pickle.dump(cell_matrix, open(dir_name + "/cells", "wb"))
+# pickle.dump(hidden_matrix, open(dir_name + "/hiddens", "wb"))
+# pickle.dump(train_accuracies, open(dir_name + "/train_acc", "wb"))
+# pickle.dump(test_accuracies, open(dir_name + "/test_acc", "wb"))
+# pickle.dump(train_losses, open(dir_name + "/train_loss", "wb"))
+# pickle.dump(test_losses, open(dir_name + "/test_loss", "wb"))
 
 plot_flag = False
 if plot_flag:
