@@ -279,7 +279,11 @@ with tf.Session() as sess:
     # Save the variables to disk.
     # model_checkpoint_name based on final test accuracy
     # can improve to include file with all hyperparam info in same dir
-    model_checkpoint_name = "/tmp"+str(sample_lengths)+"/model"+str(accuracy)+".ckpt"
+    directory = "tmp"+str(sample_lengths)+"/"
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    filename = "model"+str(accuracy)+".ckpt"
+    model_checkpoint_name = directory+filename
     save_path = saver.save(sess, model_checkpoint_name)
     print "Model saved in file: %s" % save_path
 
