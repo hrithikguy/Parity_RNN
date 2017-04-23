@@ -1,4 +1,3 @@
-
 import tensorflow as tf
 import numpy as np
 import datetime
@@ -16,11 +15,12 @@ if len(sys.argv) > 1:
 else:
     sample_lengths = 15
 
-numbers = list(np.array(np.random.choice(range(pow(2, sample_lengths)), min(10000, pow(2, sample_lengths)), replace=False)))
+max_num = range(pow(2, sample_lengths))
+sample_size = min(10000, pow(2, sample_lengths))
+numbers = list(np.array(np.random.choice(max_num, sample_size, replace=False)))
 # print numbers
 
-
-
+# create test and training sets based on indices
 train_numbers = []
 test_numbers = []
 
@@ -31,7 +31,7 @@ for i,j in enumerate(numbers):
     else:
         test_numbers.append(j)
 
-
+# split test and training sets into corresponding inputs and outputs
 train_x = []
 train_y = []
 test_x = []
@@ -45,7 +45,6 @@ for i in train_x:
         train_y.append([1, 0])
     else:
         train_y.append([0, 1])    
-
 
 for i in test_numbers:
     test_x.append(map(int, list(binary_repr(i, sample_lengths))))
@@ -79,8 +78,8 @@ for i in test_x:
 train_x = train_x_final
 test_x = test_x_final
 
-print train_x
-print test_x
+#print train_x
+#print test_x
 
 # for i,j in enumerate(train_x):
 #     print j, train_y[i]
@@ -98,30 +97,14 @@ n_steps = sample_lengths
 n_neurons = 200 # 1st layer number of features
 n_layers = 2 # 2nd layer number of features
 # n_input = sample_lengths # MNIST data input (img shape: 28*28)
-n_classes = 2 # MNIST total classes (0-9 digits)
+n_classes = 2 
 restore_path = "" # load model from restore_path
+
+# Construct model
 
 # tf Graph input
 x = tf.placeholder("float", [None, n_steps, n_input])
 y = tf.placeholder("float", [None, n_classes])
-
-# Create model
-# def rnn(x):
-    # Hidden layer with RELU activation
-
-# print x
-
-    # layer_1 = tf.add(tf.matmul(x, weights['h1']), biases['b1'])
-    # layer_1 = tf.nn.relu(layer_1)
-    # # Hidden layer with RELU activation
-    # layer_2 = tf.add(tf.matmul(layer_1, weights['h2']), biases['b2'])
-    # layer_2 = tf.nn.relu(layer_2)
-    # # Output layer with linear activation
-    # out_layer = tf.matmul(layer_2, weights['out']) + biases['out']
-
-
-
-    # return out_layer
 
 # Store layers weight & bias
 weights = {
@@ -136,19 +119,14 @@ biases = {
 }
 
 x_unstacked = tf.unstack(x, n_steps, 1)
-# cell = tf.contrib.rnn.BasicLSTMCell(n_neurons)
+# tf1.0: 
 # cell = tf.contrib.rnn.MultiRNNCell([tf.contrib.rnn.BasicLSTMCell(n_neurons) for _ in range(n_layers)])
+# outputs,states = tf.contrib.rnn.static_rnn(cell, x_unstacked, dtype=tf.float32)
+# tf.12:
 cell = tf.nn.rnn_cell.MultiRNNCell([tf.nn.rnn_cell.BasicLSTMCell(n_neurons),  tf.nn.rnn_cell.BasicLSTMCell(n_neurons)])
-
-
-
-#outputs,states = tf.contrib.rnn.static_rnn(cell, x_unstacked, dtype=tf.float32)
 outputs,states = tf.nn.rnn(cell, x_unstacked, dtype=tf.float32)
 
 pred = tf.matmul(outputs[-1], weights['out']) + biases['out']
-
-
-# # Construct model
 
 # Define loss and optimizer
 cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=pred, labels=y))
@@ -157,13 +135,11 @@ optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
 # Initializing the variables
 init = tf.global_variables_initializer()
 
-
 train_accuracies = []
 train_losses = []
 
 test_accuracies = []
 test_losses = []
-
 
 weight_matrix = []
 bias_matrix = []
@@ -205,10 +181,6 @@ with tf.Session() as sess:
                 batch_x.append(train_x[i])
                 batch_y.append(train_y[i])
 
-            # batch_x = tf.convert_to_tensor(batch_x)
-            # batch_y = tf.convert_to_tensor(batch_y)
-            # print batch_x
-            # print batch_y
             # Run optimization op (backprop) and cost op (to get loss value)
             _, c, cur_epoch_states = sess.run([optimizer, cost, states], feed_dict={x: batch_x,
                                                           y: batch_y})
@@ -305,18 +277,18 @@ pickle.dump(test_accuracies, open(dir_name + "/test_acc", "wb"))
 pickle.dump(train_losses, open(dir_name + "/train_loss", "wb"))
 pickle.dump(test_losses, open(dir_name + "/test_loss", "wb"))
 
+plot_flag = False
+if plot_flag:
+    x_axis = np.arange(0, len(train_accuracies))
 
+    plt.figure(1)
+    plt.plot(x_axis, train_accuracies, 'r')
+    plt.plot(x_axis, test_accuracies, 'g')
 
-x_axis = np.arange(0, len(train_accuracies))
+    plt.show()
 
-plt.figure(1)
-plt.plot(x_axis, train_accuracies, 'r')
-plt.plot(x_axis, test_accuracies, 'g')
+    plt.figure(1)
+    plt.plot(x_axis, train_losses, 'r')
+    plt.plot(x_axis, test_losses, 'g')
 
-plt.show()
-
-plt.figure(1)
-plt.plot(x_axis, train_losses, 'r')
-plt.plot(x_axis, test_losses, 'g')
-
-plt.show()
+    plt.show()
