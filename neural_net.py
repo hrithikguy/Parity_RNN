@@ -1,7 +1,9 @@
-
 import tensorflow as tf
 import numpy as np
+import datetime
 import matplotlib.pyplot as plt
+import os
+import cPickle as pickle
 
 from numpy import binary_repr
 
@@ -24,12 +26,6 @@ for i,j in enumerate(numbers):
         train_numbers.append(j)
     else:
         test_numbers.append(j)
-
-# print train_numbers
-# print len(train_numbers)
-# print test_numbers
-# print len(test_numbers)
-
 
 
 train_x = []
@@ -57,60 +53,101 @@ for i in test_x:
         test_y.append([0, 1])    
 
 
+train_x_final = []
+train_y_final = []
+test_x_final = []
+test_y_final = []
+
+for i in train_x:
+    cur = []
+    for j in i:
+        cur.append([j])
+    train_x_final.append(cur)
+
+
+
+for i in test_x:
+    cur = []
+    for j in i:
+        cur.append([j])
+    test_x_final.append(cur)
+
+train_x = train_x_final
+test_x = test_x_final
+
+
 # for i,j in enumerate(train_x):
 #     print j, train_y[i]
 
 
 # Parameters
 learning_rate = 0.001
-training_epochs = 500
-batch_size = 5
+training_epochs = 1000
+batch_size = 10
 display_step = 1
 
 # Network Parameters
-n_hidden_1 = 256 # 1st layer number of features
-n_hidden_2 = 256 # 2nd layer number of features
-n_input = sample_lengths # MNIST data input (img shape: 28*28)
+n_input = 1
+n_steps = sample_lengths
+n_neurons = 200 # 1st layer number of features
+n_layers = 2 # 2nd layer number of features
+# n_input = sample_lengths # MNIST data input (img shape: 28*28)
 n_classes = 2 # MNIST total classes (0-9 digits)
 
 # tf Graph input
-x = tf.placeholder("float", [None, n_input])
+x = tf.placeholder("float", [None, n_steps, n_input])
 y = tf.placeholder("float", [None, n_classes])
 
 
 # Create model
-def multilayer_perceptron(x, weights, biases):
+# def rnn(x):
     # Hidden layer with RELU activation
-    layer_1 = tf.add(tf.matmul(x, weights['h1']), biases['b1'])
-    layer_1 = tf.nn.relu(layer_1)
-    # Hidden layer with RELU activation
-    layer_2 = tf.add(tf.matmul(layer_1, weights['h2']), biases['b2'])
-    layer_2 = tf.nn.relu(layer_2)
-    # Output layer with linear activation
-    out_layer = tf.matmul(layer_2, weights['out']) + biases['out']
-    return out_layer
+
+# print x
+
+    # layer_1 = tf.add(tf.matmul(x, weights['h1']), biases['b1'])
+    # layer_1 = tf.nn.relu(layer_1)
+    # # Hidden layer with RELU activation
+    # layer_2 = tf.add(tf.matmul(layer_1, weights['h2']), biases['b2'])
+    # layer_2 = tf.nn.relu(layer_2)
+    # # Output layer with linear activation
+    # out_layer = tf.matmul(layer_2, weights['out']) + biases['out']
+
+
+
+    # return out_layer
 
 # Store layers weight & bias
 weights = {
-    'h1': tf.Variable(tf.random_normal([n_input, n_hidden_1])),
-    'h2': tf.Variable(tf.random_normal([n_hidden_1, n_hidden_2])),
-    'out': tf.Variable(tf.random_normal([n_hidden_2, n_classes]))
+    # 'h1': tf.Variable(tf.random_normal([n_input, n_hidden_1])),
+    # 'h2': tf.Variable(tf.random_normal([n_hidden_1, n_hidden_2])),
+    'out': tf.Variable(tf.random_normal([n_neurons, n_classes]))
 }
 biases = {
-    'b1': tf.Variable(tf.random_normal([n_hidden_1])),
-    'b2': tf.Variable(tf.random_normal([n_hidden_2])),
+    # 'b1': tf.Variable(tf.random_normal([n_hidden_1])),
+    # 'b2': tf.Variable(tf.random_normal([n_hidden_2])),
     'out': tf.Variable(tf.random_normal([n_classes]))
 }
 
-# Construct model
-pred = multilayer_perceptron(x, weights, biases)
+x_unstacked = tf.unstack(x, n_steps, 1)
+# cell = tf.contrib.rnn.BasicLSTMCell(n_neurons)
+# cell = tf.contrib.rnn.MultiRNNCell([tf.contrib.rnn.BasicLSTMCell(n_neurons) for _ in range(n_layers)])
+cell = tf.nn.rnn_cell.MultiRNNCell([tf.nn.rnn_cell.BasicLSTMCell(n_neurons),  tf.nn.rnn_cell.BasicLSTMCell(n_neurons)])
+
+
+outputs,states = tf.nn.rnn(cell, x_unstacked, dtype=tf.float32)
+
+pred = tf.matmul(outputs[-1], weights['out']) + biases['out']
+
+
+# # Construct model
 
 # Define loss and optimizer
-cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(pred, y))
+cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=pred, labels=y))
 optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
 
 # Initializing the variables
-init = tf.initialize_all_variables()
+init = tf.global_variables_initializer()
 
 
 train_accuracies = []
@@ -119,29 +156,46 @@ train_losses = []
 test_accuracies = []
 test_losses = []
 
+
+weight_matrix = []
+bias_matrix = []
+cell_matrix = []
+hidden_matrix = []
+
+perfect_accuracy_count = 0
+
 # Launch the graph
 with tf.Session() as sess:
     sess.run(init)
 
     # Training cycle
     for epoch in range(training_epochs):
+
         print epoch
+        if perfect_accuracy_count > 5:
+            break
         avg_cost = 0.
-        total_batch = int(len(train_x)/100)
+        total_batch = int(len(train_x)/batch_size)
         # Loop over all batches
         for i in range(total_batch):
             
-            batch_indices = np.random.choice(len(train_x), 100)
+            batch_indices = np.random.choice(len(train_x), batch_size)
             batch_x = []
             batch_y = []
             for i in batch_indices:
                 batch_x.append(train_x[i])
                 batch_y.append(train_y[i])
 
+            # batch_x = tf.convert_to_tensor(batch_x)
+            # batch_y = tf.convert_to_tensor(batch_y)
+
+
+
+
             # print batch_x
             # print batch_y
             # Run optimization op (backprop) and cost op (to get loss value)
-            _, c = sess.run([optimizer, cost], feed_dict={x: batch_x,
+            _, c, cur_epoch_states = sess.run([optimizer, cost, states], feed_dict={x: batch_x,
                                                           y: batch_y})
             # Compute average loss
             avg_cost += c / total_batch
@@ -165,6 +219,27 @@ with tf.Session() as sess:
         test_accuracies.append(accuracy.eval({x: test_x, y: test_y}))
         train_losses.append(cost.eval({x: train_x, y: train_y}))
 
+        print("Final Train Accuracy")
+        # Calculate accuracy
+        print("Accuracy:", train_accuracies[-1])
+
+        if train_accuracies[-1] >= 0.999 or test_accuracies[-1] >= 0.999:
+            perfect_accuracy_count += 1
+
+
+        print("Final Test Accuracy")
+        # Calculate accuracy
+        print("Accuracy:", test_accuracies[-1])
+
+        weight_matrix.append(weights['out'].eval())
+        bias_matrix.append(biases['out'].eval())
+
+        for i in cur_epoch_states:
+            cell_matrix.append(i[0])
+            hidden_matrix.append(i[1])
+
+
+        # np.savez("weights3_" + str(epoch), states = states[-1])
 
     print("Final Train Accuracy")
     correct_prediction = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
@@ -184,6 +259,19 @@ print train_accuracies
 print test_accuracies
 print train_losses
 print test_losses
+
+dir_name = str(datetime.datetime.now().isoformat())
+os.makedirs(dir_name)
+
+pickle.dump(weight_matrix, open(dir_name + "/weights", "wb"))
+pickle.dump(bias_matrix, open(dir_name + "/biases", "wb"))
+pickle.dump(cell_matrix, open(dir_name + "/cells", "wb"))
+pickle.dump(hidden_matrix, open(dir_name + "/hiddens", "wb"))
+pickle.dump(train_accuracies, open(dir_name + "/train_acc", "wb"))
+pickle.dump(test_accuracies, open(dir_name + "/test_acc", "wb"))
+pickle.dump(train_losses, open(dir_name + "/train_loss", "wb"))
+pickle.dump(test_losses, open(dir_name + "/test_loss", "wb"))
+
 
 
 x_axis = np.arange(0, len(train_accuracies))
